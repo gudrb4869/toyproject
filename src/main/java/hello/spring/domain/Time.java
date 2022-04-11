@@ -20,6 +20,5 @@ public abstract class Time { // 상속
     private LocalDateTime createdDate;
 
     @LastModifiedDate
-    @Column
     private LocalDateTime modifiedDate;
 }

@@ -96,7 +96,7 @@ public class BoardController {
     public String search(@RequestParam(value = "keyword") String keyword, Model model) {
         List<BoardDto> boardDtoList = boardService.searchPosts(keyword);
 
-        model.addAttribute("boardDtoList", boardDtoList);
+        model.addAttribute("boardList", boardDtoList);
         return "board/list";
     }
 }
