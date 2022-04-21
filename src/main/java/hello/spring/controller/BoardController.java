@@ -11,10 +11,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @Controller
-@AllArgsConstructor
+@RequiredArgsConstructor
 @RequestMapping("board") // /board 경로로 들어오는 경우 아래의 Method들로 분기될 수 있도록 설정
 public class BoardController {
-    private BoardService boardService;
+    private final BoardService boardService;
 
     // 게시판
 
@@ -92,11 +92,17 @@ public class BoardController {
     // keyword를 view로부터 전달 받고
     // Service로부터 받은 boardDtoList를 model의 attribute로 전달해준다.
 
-    @GetMapping("/board/search")
-    public String search(@RequestParam(value = "keyword") String keyword, Model model) {
+    @GetMapping("/search")
+    public String search(@RequestParam(value = "keyword") String keyword,
+                         @RequestParam(value = "page", defaultValue = "1") Integer pageNum,
+                         Model model) {
         List<BoardDto> boardDtoList = boardService.searchPosts(keyword);
-
+        Integer[] searchPageList = boardService.getPageList(pageNum, keyword);
+//        Integer[] searchPageList = new Integer[1];
+//        searchPageList[0] = 1;
         model.addAttribute("boardList", boardDtoList);
-        return "board/list";
+        model.addAttribute("pageList", searchPageList);
+        model.addAttribute("keyword", keyword);
+        return "board/search";
     }
 }

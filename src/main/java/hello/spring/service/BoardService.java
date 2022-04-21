@@ -4,6 +4,7 @@ import hello.spring.domain.Board;
 import hello.spring.dto.BoardDto;
 import hello.spring.repository.BoardRepository;
 import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -14,11 +15,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-@AllArgsConstructor
+@RequiredArgsConstructor
 @Service
 public class BoardService {
 
-    private BoardRepository boardRepository;
+    private final BoardRepository boardRepository;
 
     private static final int BLOCK_PAGE_NUM_COUNT = 5; // 블럭에 존재하는 페이지 번호 수
     private static final int PAGE_POST_COUNT = 4; // 한 페이지에 존재하는 게시글 수
@@ -130,6 +131,20 @@ public class BoardService {
         return boardRepository.count();
     }
 
+    @Transactional
+    public Long getSearchBoardCount(String keyword) {
+        List<Board> boardEntities = boardRepository.findByTitleContaining(keyword);
+
+        if (boardEntities.isEmpty()) return 0L;
+
+        Long count = 0L;
+        for (Board board : boardEntities) {
+            count++;
+        }
+
+        return count;
+    }
+
     // - 하나의 Page : 4개의 게시글
     // - 총 5개의 번호를 노출
     // - 번호를 5개 채우지 못하면 (게시글이 20개가 되지 않으면) 존재하는 번호까지만 노출
@@ -143,16 +158,47 @@ public class BoardService {
         // 총 게시글 기준으로 계산한 마지막 페이지 번호 계산 (올림으로 계산)
         Integer totalLastPageNum = (int)(Math.ceil((postsTotalCount/PAGE_POST_COUNT)));
 
-        // 현재 페이지를 기준으로 블럭의 마지막 페이지 번호 계산
-        Integer blockLastPageNum = (totalLastPageNum > curPageNum + BLOCK_PAGE_NUM_COUNT)
-                ? curPageNum + BLOCK_PAGE_NUM_COUNT
-                : totalLastPageNum;
+        Integer blockStartPageNum =
+                (curPageNum <= BLOCK_PAGE_NUM_COUNT / 2)
+                        ? 1
+                        : curPageNum - BLOCK_PAGE_NUM_COUNT / 2;
 
-        // 페이지 시작 번호 조정
-        curPageNum = (curPageNum <= 3) ? 1 : curPageNum - 2;
+        // 현재 페이지를 기준으로 블럭의 마지막 페이지 번호 계산
+        Integer blockLastPageNum =
+                (totalLastPageNum > blockStartPageNum + BLOCK_PAGE_NUM_COUNT - 1 )
+                        ? blockStartPageNum + BLOCK_PAGE_NUM_COUNT - 1
+                        : totalLastPageNum;
 
         // 페이지 번호 할당
-        for (int val = curPageNum, idx = 0; val <= blockLastPageNum; val++, idx++) {
+        for (int val = blockStartPageNum, idx = 0; val <= blockLastPageNum; val++, idx++) {
+            pageList[idx] = val;
+        }
+
+        return pageList;
+    }
+
+    public Integer[] getPageList(Integer curPageNum, String keyword) {
+        Integer[] pageList = new Integer[BLOCK_PAGE_NUM_COUNT];
+
+        // 총 게시글 갯수
+        Double postsTotalCount = Double.valueOf(this.getSearchBoardCount(keyword));
+
+        // 총 게시글 기준으로 계산한 마지막 페이지 번호 계산 (올림으로 계산)
+        Integer totalLastPageNum = (int)(Math.ceil((postsTotalCount/PAGE_POST_COUNT)));
+
+        Integer blockStartPageNum =
+                (curPageNum <= BLOCK_PAGE_NUM_COUNT / 2)
+                        ? 1
+                        : curPageNum - BLOCK_PAGE_NUM_COUNT / 2;
+
+        // 현재 페이지를 기준으로 블럭의 마지막 페이지 번호 계산
+        Integer blockLastPageNum =
+                (totalLastPageNum > blockStartPageNum + BLOCK_PAGE_NUM_COUNT - 1 )
+                        ? blockStartPageNum + BLOCK_PAGE_NUM_COUNT - 1
+                        : totalLastPageNum;
+
+        // 페이지 번호 할당
+        for (int val = blockStartPageNum, idx = 0; val <= blockLastPageNum; val++, idx++) {
             pageList[idx] = val;
         }
 
